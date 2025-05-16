@@ -1,0 +1,29 @@
+[package]
+name = "rust_controller"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8"
+
+
+
+[dependencies.rclrs]
+version = "0.4"
+
+[dependencies.rosidl_runtime_rs]
+version = "0.4"
+
+[dependencies.builtin_interfaces]
+version = "1.2.1"
+
+[dependencies.std_msgs]
+version = "*"
+
+[dependencies.geometry_msgs]
+version = "*"
+
+[dependencies.nav_msgs]
+version = "*"
+
+

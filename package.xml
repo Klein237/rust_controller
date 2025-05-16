@@ -1,0 +1,28 @@
+<package format="3">
+  <name>rust_controller</name>
+  <version>0.0.0</version>
+  <description>TODO: Package controller server with rust</description>
+  <maintainer email="kleinfy51@gmail.com">Klein</maintainer>
+  <license>TODO: License declaration</license>
+
+  <depend>rclrs</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <!-- <build_depend>rclrs</build_depend>
+  <build_depend>rosidl_runtime_rs</build_depend>
+  <build_depend>std_msgs</build_depend>
+
+  <buildtool_depend>cargo</buildtool_depend>
+
+  <exec_depend>rclrs</exec_depend>
+  <exec_depend>rosidl_runtime_rs</exec_depend>
+  <exec_depend>std_msgs</exec_depend> -->
+
+ 
+ 
+
+  <export>
+    <build_type>ament_cargo</build_type>
+  </export>
+</package>
