@@ -58,13 +58,13 @@ impl ControllerServer {
             min_lookahead_dist_: 0.3, 
             max_lookahead_dist_: 1.0, 
             path_length_: 0.0, 
-            path_type_: "lineare".to_string(),  // "lineare", "circle", "sinusoid"
+            path_type_: "s_curve".to_string(),  // "lineare", "circle", "sinusoid" s_curve
             pub_vel: None,
             pose_pub: None,
             path_pub: None,
             simulator: None,
             pose: None,
-            use_case: "sim".to_string(),  //turtle
+            use_case: "turtle".to_string(),  //turtle or sim
             pose_turtle: None,
         })
     }
@@ -108,7 +108,7 @@ impl ControllerServer {
 
         self.lookahead_distance_ = self.node
             .declare_parameter("lookahead_distance")
-            .default(1.5)
+            .default(0.5)
             .mandatory()
             .unwrap()
             .get();
@@ -286,7 +286,7 @@ impl ControllerServer {
     }
 
     // This function converts the quaternion to yaw
-    fn quaternion_to_yaw(&mut self, quat: &Quaternion) -> f64 {
+    fn quaternion_to_yaw(quat: &Quaternion) -> f64 {
        
         let siny_cosp = 2.0 * (quat.w * quat.z + quat.x * quat.y);
         let cosy_cosp = 1.0 - 2.0 * (quat.y * quat.y + quat.z * quat.z);
@@ -301,6 +301,7 @@ impl ControllerServer {
             "lineare" => TypePath::Lineare,
             "circle" => TypePath::Circle,
             "sinusoid" => TypePath::Sinusoid,
+            "s_curve" => TypePath::SCurve,
             _ => return Err("Invalid path type".to_string()),
         };
 
@@ -411,6 +412,7 @@ impl ControllerServer {
 
         
         let path = self.current_path.as_ref()?;
+        let current_pose = self.current_pose.as_ref()?;
 
         if path.poses.is_empty() {
             println!("Path vide → arrêt du robot");
@@ -423,8 +425,8 @@ impl ControllerServer {
         let mut target_point = None;   
     
         for pose_stamped in &path.poses {
-            let dx = pose_stamped.pose.position.x - self.current_pose.clone().unwrap().pose.position.x;
-            let dy = pose_stamped.pose.position.y - self.current_pose.clone().unwrap().pose.position.y;
+            let dx = pose_stamped.pose.position.x - current_pose.pose.position.x;
+            let dy = pose_stamped.pose.position.y - current_pose.pose.position.y;
             let distance = (dx * dx + dy * dy).sqrt();
 
             // publish the pose
@@ -443,13 +445,13 @@ impl ControllerServer {
             println!("NOTE: No target point found, using the last point in the path");
             let last = path.poses.last().unwrap();
             (
-                last.pose.position.x - self.current_pose.clone().unwrap().pose.position.x,
-                last.pose.position.y - self.current_pose.clone().unwrap().pose.position.y
+                last.pose.position.x - current_pose.pose.position.x,
+                last.pose.position.y - current_pose.pose.position.y
             )
         });
     
         // compute the heading
-        let heading = self.quaternion_to_yaw(&self.current_pose.clone().unwrap().pose.orientation);
+        let heading = Self::quaternion_to_yaw(&current_pose.pose.orientation);
         let x_r =  dx * heading.cos() + dy * heading.sin();
         let y_r = -dx * heading.sin() + dy * heading.cos();
     
