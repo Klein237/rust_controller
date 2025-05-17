@@ -67,6 +67,17 @@ Before building this project, make sure you have:
 ```bash
 ros2 run turtlesim turtlesim_node
 ```
+### Init the pose
+```bash
+ros2 service call /turtle1/teleport_absolute turtlesim/srv/TeleportAbsolute "{x: 1.0, y: 1.0, theta: 0.9}"
+
+```
+### Launch the wrapper node
+
+```bash
+python3 rust_controller/script/wrapper_turtle.py
+```
+
 
 ### Launch the controller:
 ```bash
@@ -74,6 +85,10 @@ ros2 run rust_controller rust_controller
 ```
 
 ---
+
+## 🎥 📷 Demos
+![Follow Path](doc/rust_cont.png)
+![Anime](doc/rust_controller_vi.gif)
 
 ## 📁 Project Structure
 

@@ -195,7 +195,7 @@ impl ControllerServer {
 
         self.current_pose  = Some(self.pose2d_to_posestamped("map").unwrap());
 
-        self.print_current_pose();
+        //self.print_current_pose();
 
         let _ = self.compute_velocity().ok_or_else(|| {
             println!("Failed to compute velocity");
