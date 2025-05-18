@@ -5,6 +5,7 @@ use rclrs::{Executor, Node, Publisher,RclrsError};
 use crate::path_handler::{PathGenerator, TypePath};
 use crate::lifecycle::{LifecycleManager, LifecycleState};
 use crate::localization::{DifferentialDriveSimulator};
+use crate::config::Config;
 
 use geometry_msgs::msg::{Twist, PoseStamped, Pose, Point, Quaternion};
 use nav_msgs::msg::Path;
@@ -14,7 +15,7 @@ use builtin_interfaces::msg::Time;
 
 use geometry_msgs::msg::Pose2D;
 
-// that is the contructor of the controller server
+// this is the contructor of the controller server
 pub struct ControllerServer {
     pub node: Arc<Node>,
         lifecycle: LifecycleManager,
@@ -22,7 +23,6 @@ pub struct ControllerServer {
         current_pose: Option<PoseStamped>,
         controller_name_: String,
         desired_linear_vel_: f64,
-        robot_radius_: f64,
         lookahead_distance_: f64,
         min_lookahead_dist_: f64,
         max_lookahead_dist_: f64,
@@ -53,7 +53,6 @@ impl ControllerServer {
             current_pose: None,
             controller_name_: String::from("purepursuit"), 
             desired_linear_vel_: 0.1, 
-            robot_radius_: 0.3, 
             lookahead_distance_: 0.5, 
             min_lookahead_dist_: 0.3, 
             max_lookahead_dist_: 1.0, 
@@ -72,69 +71,33 @@ impl ControllerServer {
 
     // This function is used to load all the parameters
     pub fn configure(&mut self) -> Result<(), String> {
-        //self.lifecycle.configure()?;
+        
         self.lifecycle.transition(LifecycleState::Inactive)?;
 
-        // TODO: load parameters from yaml file
-
+        // this ROS method does not work with the string 
         // self.controller_name_ = self.node
         //     .declare_parameter("controller_name")
         //     .default(Arc::<str>::from("purepursuit"))
         //     .to_string();
 
-
-        // self.path_type_ = self.node
-        //     .declare_parameter("path_type")
-        //     .default(Arc::<str>::from("lineare"))
+        // ROS method to declare parameters it's working but not used
+        // self.desired_linear_vel_ = self.node
+        //     .declare_parameter("desired_linear_vel")
+        //     .default(0.33)
+        //     .mandatory()
         //     .unwrap()
-        //     .get()
-        //     .to_string();
-        
-        
+        //     .get();
 
-        self.desired_linear_vel_ = self.node
-            .declare_parameter("desired_linear_vel")
-            .default(0.33)
-            .mandatory()
-            .unwrap()
-            .get();
-            
-        self.robot_radius_ = self.node
-            .declare_parameter("robot_radius")
-            .default(0.2)
-            .mandatory()
-            .unwrap()
-            .get();
+        let config = Config::from_yaml_file("src/rust_controller/config/params.yaml")?;
 
-        self.lookahead_distance_ = self.node
-            .declare_parameter("lookahead_distance")
-            .default(0.5)
-            .mandatory()
-            .unwrap()
-            .get();
-
-        
-        self.min_lookahead_dist_ = self.node
-            .declare_parameter("min_lookahead_dist")
-            .default(0.1)
-            .mandatory()
-            .unwrap()
-            .get();
-
-        self.max_lookahead_dist_ = self.node
-            .declare_parameter("max_lookahead_dist")
-            .default(3.0)
-            .mandatory()
-            .unwrap()
-            .get();
-            
-        self.path_length_ = self.node
-            .declare_parameter("path_length")
-            .default(30.0)
-            .mandatory()
-            .unwrap()
-            .get();
-
+        self.controller_name_ = config.controller_name.unwrap_or_else(|| "purepursuit".to_string());
+        self.desired_linear_vel_ = config.desired_linear_vel.unwrap_or(0.1);
+        self.lookahead_distance_ = config.lookahead_distance.unwrap_or(0.5);
+        self.min_lookahead_dist_ = config.min_lookahead_dist.unwrap_or(0.1);
+        self.max_lookahead_dist_ = config.max_lookahead_dist.unwrap_or(3.0);
+        self.path_length_ = config.path_length.unwrap_or(30.0);
+        self.path_type_ = config.path_type.unwrap_or_else(|| "s_curve".to_string());
+        self.use_case = config.use_case.unwrap_or_else(|| "turtle".to_string());
 
         let publisher = self.node.create_publisher::<Twist>("/turtle1/cmd_vel").unwrap();
         self.pub_vel = Some(publisher);
@@ -195,7 +158,7 @@ impl ControllerServer {
 
         self.current_pose  = Some(self.pose2d_to_posestamped("map").unwrap());
 
-        //self.print_current_pose();
+        
 
         let _ = self.compute_velocity().ok_or_else(|| {
             println!("Failed to compute velocity");
@@ -386,25 +349,7 @@ impl ControllerServer {
         println!("[get_path] Path published");
     }
 
-    fn print_current_pose(&self) {
-        if let Some(pose_stamped) = &self.current_pose {
-            let position = &pose_stamped.pose.position;
-            let orientation = &pose_stamped.pose.orientation;
-    
-            println!(
-                "[current_pose] x = {:.3}, y = {:.3}, z = {:.3}, orientation = [x: {:.3}, y: {:.3}, z: {:.3}, w: {:.3}]",
-                position.x,
-                position.y,
-                position.z,
-                orientation.x,
-                orientation.y,
-                orientation.z,
-                orientation.w
-            );
-        } else {
-            println!("[current_pose] Aucune pose disponible");
-        }
-    }
+   
     
     // Pure pursuit controller
     // This function is used to compute the velocity of the robot
