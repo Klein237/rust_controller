@@ -4,9 +4,19 @@ use geometry_msgs::msg::Pose2D;
 use std::sync::{Arc, Mutex};
 use rclrs::*;
 
+use std::env;
+use env_logger;
+
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+    if env::var("RUST_LOG").is_err() {
+        env::set_var("RUST_LOG", "info");
+    }
+    let _ = env_logger::try_init();
+    log::info!("Starting the controller server...");
+
     // ROS2 Init
     let context = Context::default_from_env()?;
     let mut executor = context.create_basic_executor();

@@ -15,6 +15,10 @@ use builtin_interfaces::msg::Time;
 
 use geometry_msgs::msg::Pose2D;
 
+use log::{info, warn, error};
+
+
+
 // this is the contructor of the controller server
 pub struct ControllerServer {
     pub node: Arc<Node>,
@@ -114,7 +118,8 @@ impl ControllerServer {
         if let Some(sim) = &mut self.simulator {
             sim.enable_noise(0.01);
         } else {
-            println!("Aucun simulateur présent → enable_noise ignoré");
+            
+            info!("Aucun simulateur présent → enable_noise ignoré");
         }
         
 
@@ -130,7 +135,8 @@ impl ControllerServer {
             theta: 0.0,
         });
         
-        println!("[Lifecycle] Configured successfully");
+        
+        info!("[Lifecycle] Configured successfully");
         Ok(())
     }
 
@@ -145,7 +151,8 @@ impl ControllerServer {
 
         } else {
 
-        println!("[Lifecycle] Controller is active");
+        
+        info!("[Lifecycle] Controller is active");
 
 
 
@@ -153,7 +160,8 @@ impl ControllerServer {
             self.pose = Some(sim.get_pose());
             
         } else {
-            println!("Aucun simulateur présent → get_pose ignoré");
+            
+            warn!("Aucun simulateur présent → get_pose ignoré");
         }
 
         self.current_pose  = Some(self.pose2d_to_posestamped("map").unwrap());
@@ -161,7 +169,8 @@ impl ControllerServer {
         
 
         let _ = self.compute_velocity().ok_or_else(|| {
-            println!("Failed to compute velocity");
+            
+            error!("Failed to compute velocity");
             None::<Twist>
         }).unwrap();
 
@@ -179,7 +188,8 @@ impl ControllerServer {
         self.lifecycle.transition(LifecycleState::Active)?;
         self.get_path().ok();
         
-        println!("[Lifecycle] Activated ");
+        
+        info!("[Lifecycle] Activated ");
     
         Ok(())
     }
@@ -190,7 +200,8 @@ impl ControllerServer {
         
         self.lifecycle.transition(LifecycleState::Inactive)?;
         
-        println!("[Lifecycle] Deactivated ");
+        
+        info!("[Lifecycle] Deactivated ");
         Ok(())
     }
 
@@ -200,7 +211,9 @@ impl ControllerServer {
         
         self.lifecycle.transition(LifecycleState::Finalized)?;
         
-        println!("[Lifecycle] Cleaned up");
+        
+        info!("[Lifecycle] Cleaned up");
+
         Ok(())
     }
 
@@ -218,7 +231,8 @@ impl ControllerServer {
             "sim" => self.pose.as_ref()?,
             "turtle" => self.pose_turtle.as_ref()?,
             _ => {
-                println!("use_case inconnu : {}", self.use_case);
+                
+                error!("use_case inconnu : {}", self.use_case);
                 return None;
             }
         };
@@ -274,7 +288,8 @@ impl ControllerServer {
         let path = paths.generate_path(self.path_length_);
         
         if path.is_empty() {
-            println!("Path empty ");
+            
+            error!("Path empty ");
             return Err("Path is empty".to_string());
         }
         else {
@@ -304,7 +319,8 @@ impl ControllerServer {
                 }).collect(),
             };
             self.current_path = Some(path);
-            println!("Path generated successfully");
+            
+            info!("Path generated successfully");
             Ok(())
         }
         
@@ -314,7 +330,8 @@ impl ControllerServer {
         let robot_pose = match &self.current_pose {
             Some(pose) => pose,
             None => {
-                println!("No pose available → update_path ignored");
+                
+                warn!("No pose available → update_path ignored");
                 return;
             }
         };
@@ -322,7 +339,8 @@ impl ControllerServer {
         let path = match &mut self.current_path {
             Some(path) => path,
             None => {
-                println!("No path available → update_path ignored");
+                
+                warn!("No path available → update_path ignored");
                 return;
             }
         };
@@ -341,12 +359,14 @@ impl ControllerServer {
             distance >= threshold
         });
     
-        println!("[update_path] Path mis à jour : {} points restants", path.poses.len());
+        
+        info!("[update_path] Path mis à jour : {} points restants", path.poses.len());
         // Publish the updated path
         if let Some(path_publisher) = &self.path_pub {
             path_publisher.publish(&self.current_path.clone().unwrap()).unwrap();
         }
-        println!("[get_path] Path published");
+        
+        info!("[get_path] Path published");
     }
 
    
@@ -360,7 +380,8 @@ impl ControllerServer {
         let current_pose = self.current_pose.as_ref()?;
 
         if path.poses.is_empty() {
-            println!("Path vide → arrêt du robot");
+        
+            error!("Empty path → stop robot");
             return None;
         }
 
@@ -387,7 +408,7 @@ impl ControllerServer {
     
         let (dx, dy) = target_point.unwrap_or_else(|| {
             // If no target point is found, use the last point in the path
-            println!("NOTE: No target point found, using the last point in the path");
+            warn!("NOTE: No target point found, using the last point in the path");
             let last = path.poses.last().unwrap();
             (
                 last.pose.position.x - current_pose.pose.position.x,
@@ -425,7 +446,8 @@ impl ControllerServer {
             
         }
     
-        println!("[pure_pursuit] v = {}, w = {}", cmd_vel.linear.x, cmd_vel.angular.z);
+        
+        info!("[pure_pursuit] v = {}, w = {}", cmd_vel.linear.x, cmd_vel.angular.z);
         Some(cmd_vel)
     }
     
@@ -440,7 +462,8 @@ impl ControllerServer {
                 self.pure_pursuit_controller()
             }
             _ => {
-                println!("Controller: unknown");
+                
+                error!("Controller: unknown");
                 None
             }
         }
